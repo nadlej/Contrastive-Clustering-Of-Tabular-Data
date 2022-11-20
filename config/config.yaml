@@ -1,23 +1,24 @@
 # general
 seed: 42
-workers: 8
+workers: 0
 dataset_dir: "./datasets"
 
 # train options
-batch_size: 128
-image_size: 224
-start_epoch: 1000
-epochs: 1000
-dataset: "CIFAR-10" # CIFAR-10 / CIFAR-100 / STL-10 / ImageNet-10 / ImageNet-dogs / tiny-ImageNet
+batch_size: 512
+start_epoch: 0
+input_size: 784
+epochs: 2
+dataset: "MNIST" # MNIST
+masking_ratio: 0.2
 
 # model options
-resnet: "ResNet34" # ResNet18 / ResNet34 / ResNet50
-feature_dim: 128
-model_path: "save/CIFAR-10"
+backbone: "backbone" # backbone18 / backbone34 / backbone50
+feature_dim: 256
+model_path: "save/MNIST"
 reload: False
 
 # loss options
-learning_rate: 0.0003
+learning_rate: 0.0001
 weight_decay: 0.
 instance_temperature: 0.5
 cluster_temperature: 1.0

@@ -1,0 +1,11 @@
+learning_rate: 0.01
+eps: 1e-07
+optimizer: Adam
+batch_size: 128
+feature_dim: 128
+projection_size: 128
+n_layers: 1
+0_layer_size: 128
+1_layer_size: 128
+2_layer_size: 128
+3_layer_size: 128

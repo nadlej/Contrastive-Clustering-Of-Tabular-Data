@@ -3,31 +3,48 @@ import numpy as np
 import torch
 import torchvision
 import argparse
-from modules import transform, resnet, network, contrastive_loss
+import torch.optim
+import optuna
+from modules import transform, network, contrastive_loss
 from utils import yaml_config_hook, save_model
 from torch.utils import data
+from matplotlib import pyplot as plt
+from cluster import cluster
 
+def print_samples(x_i, x_j):
+    for i in x_i:
+        pixels_org = i.reshape((28,28))
+        plt.imshow(pixels_org, cmap='gray')
+        plt.show()
+        break
+    for j in x_j:
+        pixels_org_2 = j.reshape((28,28))
+        plt.imshow(pixels_org_2, cmap='gray')
+        plt.show()
+        break
 
-def train():
-    loss_epoch = 0
-    for step, ((x_i, x_j), _) in enumerate(data_loader):
-        optimizer.zero_grad()
-        x_i = x_i.to('cuda')
-        x_j = x_j.to('cuda')
-        z_i, z_j, c_i, c_j = model(x_i, x_j)
-        loss_instance = criterion_instance(z_i, z_j)
-        loss_cluster = criterion_cluster(c_i, c_j)
-        loss = loss_instance + loss_cluster
-        loss.backward()
-        optimizer.step()
-        if step % 50 == 0:
-            print(
-                f"Step [{step}/{len(data_loader)}]\t loss_instance: {loss_instance.item()}\t loss_cluster: {loss_cluster.item()}")
-        loss_epoch += loss.item()
-    return loss_epoch
+def generate_noisy_xbar(x, masking_ratio):
+    no, dim = x.shape
+    p_m = masking_ratio
 
+    # Initialize corruption array
+    x = np.array(x)
+    x_bar_noisy = np.zeros([no, dim])
 
-if __name__ == "__main__":
+    # # Randomly (and column-wise) shuffle data
+    for i in range(dim):
+        idx = np.random.permutation(no)
+        x_bar_noisy[:, i] = x[idx, i]
+    #x_bar_noisy = x + np.random.normal(0, 0.1, x.shape)
+
+    mask = np.random.binomial(1, p_m, x_bar_noisy.shape)
+
+    # # Replace selected x_bar features with the noisy ones
+    x_bar = x * (1 - mask) + x_bar_noisy * mask
+    x_bar = torch.Tensor(x_bar)
+    return x_bar
+
+def train(params):
     parser = argparse.ArgumentParser()
     config = yaml_config_hook("config/config.yaml")
     for k, v in config.items():
@@ -36,90 +53,117 @@ if __name__ == "__main__":
     if not os.path.exists(args.model_path):
         os.makedirs(args.model_path)
 
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
-    torch.cuda.manual_seed(args.seed)
-    np.random.seed(args.seed)
-
     # prepare data
-    if args.dataset == "CIFAR-10":
-        train_dataset = torchvision.datasets.CIFAR10(
+    if args.dataset == "MNIST":
+        train_dataset = torchvision.datasets.MNIST(
             root=args.dataset_dir,
             download=True,
             train=True,
-            transform=transform.Transforms(size=args.image_size, s=0.5),
+            transform=transform.Transforms(),
         )
-        test_dataset = torchvision.datasets.CIFAR10(
+        test_dataset = torchvision.datasets.MNIST(
             root=args.dataset_dir,
             download=True,
             train=False,
-            transform=transform.Transforms(size=args.image_size, s=0.5),
+            transform=transform.Transforms(),
         )
         dataset = data.ConcatDataset([train_dataset, test_dataset])
         class_num = 10
-    elif args.dataset == "CIFAR-100":
-        train_dataset = torchvision.datasets.CIFAR100(
-            root=args.dataset_dir,
-            download=True,
-            train=True,
-            transform=transform.Transforms(size=args.image_size, s=0.5),
-        )
-        test_dataset = torchvision.datasets.CIFAR100(
-            root=args.dataset_dir,
-            download=True,
-            train=False,
-            transform=transform.Transforms(size=args.image_size, s=0.5),
-        )
-        dataset = data.ConcatDataset([train_dataset, test_dataset])
-        class_num = 20
-    elif args.dataset == "ImageNet-10":
-        dataset = torchvision.datasets.ImageFolder(
-            root='datasets/imagenet-10',
-            transform=transform.Transforms(size=args.image_size, blur=True),
-        )
-        class_num = 10
-    elif args.dataset == "ImageNet-dogs":
-        dataset = torchvision.datasets.ImageFolder(
-            root='datasets/imagenet-dogs',
-            transform=transform.Transforms(size=args.image_size, blur=True),
-        )
-        class_num = 15
-    elif args.dataset == "tiny-ImageNet":
-        dataset = torchvision.datasets.ImageFolder(
-            root='datasets/tiny-imagenet-200/train',
-            transform=transform.Transforms(s=0.5, size=args.image_size),
-        )
-        class_num = 200
     else:
         raise NotImplementedError
     data_loader = torch.utils.data.DataLoader(
         dataset,
-        batch_size=args.batch_size,
+        batch_size=params['batch_size'],
         shuffle=True,
         drop_last=True,
         num_workers=args.workers,
     )
+
     # initialize model
-    res = resnet.get_resnet(args.resnet)
-    model = network.Network(res, args.feature_dim, class_num)
-    model = model.to('cuda')
+    model = network.Network(args.input_size, params, class_num)
+    model = model.to('cpu') 
     # optimizer / loss
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+    optimizer = getattr(torch.optim, params["optimizer"])(model.parameters(), 
+                                                        lr=params['learning_rate'], 
+                                                        weight_decay=args.weight_decay, 
+                                                        betas=(0.9,0.999),
+                                                        eps=params['eps'])
     if args.reload:
         model_fp = os.path.join(args.model_path, "checkpoint_{}.tar".format(args.start_epoch))
         checkpoint = torch.load(model_fp)
         model.load_state_dict(checkpoint['net'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         args.start_epoch = checkpoint['epoch'] + 1
-    loss_device = torch.device("cuda")
-    criterion_instance = contrastive_loss.InstanceLoss(args.batch_size, args.instance_temperature, loss_device).to(
+    loss_device = torch.device("cpu")
+    criterion_instance = contrastive_loss.InstanceLoss(params['batch_size'], args.instance_temperature, loss_device).to(
         loss_device)
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
+
     # train
     for epoch in range(args.start_epoch, args.epochs):
-        lr = optimizer.param_groups[0]["lr"]
-        loss_epoch = train()
+        loss_epoch = 0
+        for step, ((x_i, x_j), _) in enumerate(data_loader):
+            print_samples(x_i, x_j)
+            optimizer.zero_grad()
+            x_i = generate_noisy_xbar(x_i, args.masking_ratio)
+            x_j = generate_noisy_xbar(x_j, args.masking_ratio)
+            x_i = x_i.to('cpu')
+            x_j = x_j.to('cpu') 
+            z_i, z_j, c_i, c_j = model(x_i, x_j)
+            loss_instance = criterion_instance(z_i, z_j)
+            loss_cluster = criterion_cluster(c_i, c_j)
+            loss = loss_instance + loss_cluster
+            loss.backward()
+            optimizer.step()
+            loss_epoch += loss.item()
         if epoch % 10 == 0:
             save_model(args, model, optimizer, epoch)
         print(f"Epoch [{epoch}/{args.epochs}]\t Loss: {loss_epoch / len(data_loader)}")
     save_model(args, model, optimizer, args.epochs)
+
+    #test
+    acc = cluster(params)
+    return acc
+
+def objective(trial):
+
+    params = {
+              'learning_rate': trial.suggest_float('learning_rate', 1e-8, 1e-0),
+              'eps': trial.suggest_float('eps', 1e-8, 1e-4),
+              'optimizer': trial.suggest_categorical('optimizer', ['Adam', 'AdamW']),
+              'batch_size': trial.suggest_int('batch_size', 127, 513),
+              'feature_dim': trial.suggest_int('feature_dim', 127, 513),
+              'projection_size': trial.suggest_int('projection_size', 127, 513),
+              'n_layers': trial.suggest_int('n_layers', 0, 5),
+              '0_layer_size': trial.suggest_int('0_layer_size', 127, 513),
+              '1_layer_size': trial.suggest_int('1_layer_size', 127, 513),
+              '2_layer_size': trial.suggest_int('2_layer_size', 127, 513),
+              '3_layer_size': trial.suggest_int('3_layer_size', 127, 513),
+              }
+    
+    accuracy = train(params)
+    print(accuracy)
+
+    return accuracy
+
+if __name__ == "__main__":
+    search_space = {'learning_rate': [ 1e-4, 1e-3, 1e-2, 1e-1],
+                    'eps': [1e-7],
+                    'optimizer': ['Adam'],
+                    'batch_size': [128],
+                    'feature_dim': [128],
+                    'projection_size': [128],
+                    'n_layers': [1, 2],
+                    '0_layer_size': [128],
+                    '1_layer_size': [128],
+                    '2_layer_size': [128],
+                    '3_layer_size': [128]
+                    }
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.GridSampler(search_space))
+    study.optimize(objective)
+    best_trial = study.best_trial
+
+    f = open("save/MNIST/best_parameters.txt", "a")
+    for key, value in best_trial.params.items():
+        print("{}: {}".format(key, value))
+        f.write("{}: {}\n".format(key, value))

@@ -1,0 +1,15 @@
+name: ConTab
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - numpy=1.23.3
+  - pytorch=1.10.2
+  - torchvision=0.11.3
+  - munkres=1.1.4
+  - opencv=4.6.0
+  - pyyaml=6.0
+  - scikit-learn=1.1.1
+  - python=3.9.7
+  - matplotlib=3.5.2
+  - optuna=2.10.1

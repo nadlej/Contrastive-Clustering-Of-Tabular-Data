@@ -10,10 +10,10 @@ class InstanceLoss(nn.Module):
         self.temperature = temperature
         self.device = device
 
-        self.mask = self.mask_correlated_samples(batch_size)
+        self.mask = self.mask_correlated_xs(batch_size)
         self.criterion = nn.CrossEntropyLoss(reduction="sum")
 
-    def mask_correlated_samples(self, batch_size):
+    def mask_correlated_xs(self, batch_size):
         N = 2 * batch_size
         mask = torch.ones((N, N))
         mask = mask.fill_diagonal_(0)
@@ -31,11 +31,11 @@ class InstanceLoss(nn.Module):
         sim_i_j = torch.diag(sim, self.batch_size)
         sim_j_i = torch.diag(sim, -self.batch_size)
 
-        positive_samples = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
-        negative_samples = sim[self.mask].reshape(N, -1)
+        positive_xs = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
+        negative_xs = sim[self.mask].reshape(N, -1)
 
-        labels = torch.zeros(N).to(positive_samples.device).long()
-        logits = torch.cat((positive_samples, negative_samples), dim=1)
+        labels = torch.zeros(N).to(positive_xs.device).long()
+        logits = torch.cat((positive_xs, negative_xs), dim=1)
         loss = self.criterion(logits, labels)
         loss /= N
 
@@ -76,10 +76,10 @@ class ClusterLoss(nn.Module):
         c_j = c_j.t()
         N = 2 * self.class_num
         c = torch.cat((c_i, c_j), dim=0)
-
         sim = self.similarity_f(c.unsqueeze(1), c.unsqueeze(0)) / self.temperature
         sim_i_j = torch.diag(sim, self.class_num)
         sim_j_i = torch.diag(sim, -self.class_num)
+
 
         positive_clusters = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
         negative_clusters = sim[self.mask].reshape(N, -1)
