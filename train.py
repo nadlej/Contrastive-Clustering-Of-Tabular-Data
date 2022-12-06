@@ -23,25 +23,46 @@ def print_samples(x_i, x_j):
         plt.show()
         break
 
-def generate_noisy_xbar(x, masking_ratio):
+def generate_noisy_xbar(x, masking_type, masking_ratio):
     no, dim = x.shape
-    p_m = masking_ratio
 
     # Initialize corruption array
     x = np.array(x)
     x_bar_noisy = np.zeros([no, dim])
+    # # Randomly (and column-wise)x shuffle data
+    if masking_type == 'swap_noise':
+        process_swap_noise(x, x_bar_noisy)
+    elif masking_type == 'gaussian':
+        x_bar_noisy = process_gaussian_noise(x, x_bar_noisy)
+    elif masking_type == 'mixed':
+        x_bar_noisy = process_mixed_noise(x, x_bar_noisy, masking_ratio)
 
-    # # Randomly (and column-wise) shuffle data
+    # # Replace selected x_bar features with the noisy ones
+    x_bar = get_masked_data(x, x_bar_noisy, masking_ratio)
+    x_bar = torch.Tensor(x_bar)
+    return x_bar
+
+def process_swap_noise(x, x_bar_noisy):
+    no, dim = x.shape
     for i in range(dim):
         idx = np.random.permutation(no)
         x_bar_noisy[:, i] = x[idx, i]
-    #x_bar_noisy = x + np.random.normal(0, 0.1, x.shape)
 
-    mask = np.random.binomial(1, p_m, x_bar_noisy.shape)
+def process_gaussian_noise(x, x_bar_noisy):
+    x_bar_noisy = x + np.random.normal(0, 0.1, x.shape)
+    return x_bar_noisy
 
-    # # Replace selected x_bar features with the noisy ones
-    x_bar = x * (1 - mask) + x_bar_noisy * mask
-    x_bar = torch.Tensor(x_bar)
+def process_mixed_noise(x, x_bar_noisy, masking_ratio):
+    x_bar_part = np.copy(x_bar_noisy)
+    x_bar_part = get_masked_data(x, x_bar_part, masking_ratio)
+    
+    process_swap_noise(x_bar_part, x_bar_part)
+    x_bar_noisy = process_gaussian_noise(x_bar_part, x_bar_noisy)
+    return x_bar_noisy
+
+def get_masked_data(x_ori, x_per, masking_ratio):
+    mask = np.random.binomial(1, masking_ratio, x_ori.shape)
+    x_bar = x_ori * (1 - mask) + x_per * mask
     return x_bar
 
 def train(params):
@@ -103,10 +124,9 @@ def train(params):
     for epoch in range(args.start_epoch, args.epochs):
         loss_epoch = 0
         for step, ((x_i, x_j), _) in enumerate(data_loader):
-            print_samples(x_i, x_j)
             optimizer.zero_grad()
-            x_i = generate_noisy_xbar(x_i, args.masking_ratio)
-            x_j = generate_noisy_xbar(x_j, args.masking_ratio)
+            x_i = generate_noisy_xbar(x_i, params['noise'], params['masking_ratio'])
+            x_j = generate_noisy_xbar(x_j, params['noise'], params['masking_ratio'])
             x_i = x_i.to('cpu')
             x_j = x_j.to('cpu') 
             z_i, z_j, c_i, c_j = model(x_i, x_j)
@@ -132,13 +152,14 @@ def objective(trial):
               'eps': trial.suggest_float('eps', 1e-8, 1e-4),
               'optimizer': trial.suggest_categorical('optimizer', ['Adam', 'AdamW']),
               'batch_size': trial.suggest_int('batch_size', 127, 513),
-              'feature_dim': trial.suggest_int('feature_dim', 127, 513),
               'projection_size': trial.suggest_int('projection_size', 127, 513),
               'n_layers': trial.suggest_int('n_layers', 0, 5),
               '0_layer_size': trial.suggest_int('0_layer_size', 127, 513),
               '1_layer_size': trial.suggest_int('1_layer_size', 127, 513),
               '2_layer_size': trial.suggest_int('2_layer_size', 127, 513),
               '3_layer_size': trial.suggest_int('3_layer_size', 127, 513),
+              'masking_ratio': trial.suggest_float('masking_ratio', 0.2, 0.3),
+              'noise': trial.suggest_categorical('noise', ['swap_noise', 'gaussian', 'mixed', 'zero'])
               }
     
     accuracy = train(params)
@@ -147,17 +168,18 @@ def objective(trial):
     return accuracy
 
 if __name__ == "__main__":
-    search_space = {'learning_rate': [ 1e-4, 1e-3, 1e-2, 1e-1],
+    search_space = {'learning_rate': [1e-3],
                     'eps': [1e-7],
-                    'optimizer': ['Adam'],
+                    'optimizer': ['AdamW'],
                     'batch_size': [128],
-                    'feature_dim': [128],
-                    'projection_size': [128],
-                    'n_layers': [1, 2],
-                    '0_layer_size': [128],
-                    '1_layer_size': [128],
+                    'projection_size': [256],
+                    'n_layers': [3],
+                    '0_layer_size': [512],
+                    '1_layer_size': [258],
                     '2_layer_size': [128],
-                    '3_layer_size': [128]
+                    '3_layer_size': [128],
+                    'masking_ratio': [0.2],
+                    'noise': ['swap_noise', 'gaussian', 'mixed', 'zero']
                     }
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.GridSampler(search_space))
     study.optimize(objective)
