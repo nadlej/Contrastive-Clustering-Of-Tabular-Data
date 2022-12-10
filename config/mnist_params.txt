@@ -8,5 +8,6 @@
                     '0_layer_size': [128, 256, 512],
                     '1_layer_size': [128, 256, 512],
                     '2_layer_size': [128, 256, 512],
-                    '3_layer_size': [128, 256, 512]
+                    '3_layer_size': [128, 256, 512],
+                    'noise': ['swap_noise', 'gaussian', 'mixed', 'zero']
                     }

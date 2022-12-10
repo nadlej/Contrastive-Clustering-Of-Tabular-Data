@@ -10,6 +10,7 @@ from utils import yaml_config_hook, save_model
 from torch.utils import data
 from matplotlib import pyplot as plt
 from cluster import cluster
+from utils.load_dataset import load_dataset
 
 def print_samples(x_i, x_j):
     for i in x_i:
@@ -88,10 +89,12 @@ def train(params):
             train=False,
             transform=transform.Transforms(),
         )
-        dataset = data.ConcatDataset([train_dataset, test_dataset])
-        class_num = 10
+    elif args.dataset == 'TUANDROMD':
+        train_dataset, test_dataset = load_dataset(args.dataset)
     else:
         raise NotImplementedError
+    dataset = data.ConcatDataset([train_dataset, test_dataset])
+    class_num = args.class_num
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=params['batch_size'],
@@ -123,8 +126,10 @@ def train(params):
     # train
     for epoch in range(args.start_epoch, args.epochs):
         loss_epoch = 0
-        for step, ((x_i, x_j), _) in enumerate(data_loader):
+        for step, (x, _) in enumerate(data_loader):
             optimizer.zero_grad()
+            x_i = x.clone()
+            x_j = x.clone()
             x_i = generate_noisy_xbar(x_i, params['noise'], params['masking_ratio'])
             x_j = generate_noisy_xbar(x_j, params['noise'], params['masking_ratio'])
             x_i = x_i.to('cpu')
@@ -151,7 +156,7 @@ def objective(trial):
               'learning_rate': trial.suggest_float('learning_rate', 1e-8, 1e-0),
               'eps': trial.suggest_float('eps', 1e-8, 1e-4),
               'optimizer': trial.suggest_categorical('optimizer', ['Adam', 'AdamW']),
-              'batch_size': trial.suggest_int('batch_size', 127, 513),
+              'batch_size': trial.suggest_int('batch_size', 1, 513),
               'projection_size': trial.suggest_int('projection_size', 127, 513),
               'n_layers': trial.suggest_int('n_layers', 0, 5),
               '0_layer_size': trial.suggest_int('0_layer_size', 127, 513),
@@ -171,7 +176,7 @@ if __name__ == "__main__":
     search_space = {'learning_rate': [1e-3],
                     'eps': [1e-7],
                     'optimizer': ['AdamW'],
-                    'batch_size': [128],
+                    'batch_size': [16],
                     'projection_size': [256],
                     'n_layers': [3],
                     '0_layer_size': [512],
@@ -179,7 +184,7 @@ if __name__ == "__main__":
                     '2_layer_size': [128],
                     '3_layer_size': [128],
                     'masking_ratio': [0.2],
-                    'noise': ['swap_noise', 'gaussian', 'mixed', 'zero']
+                    'noise': ['swap_noise']
                     }
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.GridSampler(search_space))
     study.optimize(objective)

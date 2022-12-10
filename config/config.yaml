@@ -3,12 +3,15 @@ seed: 42
 workers: 0
 dataset_dir: "./datasets"
 
+#dataset options
+input_size: 241
+class_num: 2
+
 # train options
 batch_size: 512
 start_epoch: 0
-input_size: 784
 epochs: 2
-dataset: "MNIST" # MNIST
+dataset: "TUANDROMD" # MNIST, TUANDROMD
 masking_ratio: 0.2
 
 # model options

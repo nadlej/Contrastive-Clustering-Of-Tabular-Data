@@ -7,6 +7,7 @@ from utils import yaml_config_hook
 from modules import network, transform
 from evaluation import evaluation
 from torch.utils import data
+from utils.load_dataset import load_dataset
 
 def inference(loader, model, device):
     model.eval()
@@ -48,10 +49,12 @@ def cluster(params):
             download=True,
             transform=transform.Transforms().test_transform,
         )
-        dataset = data.ConcatDataset([train_dataset, test_dataset])
-        class_num = 10
+    elif args.dataset == 'TUANDROMD':
+        train_dataset, test_dataset = load_dataset(args.dataset)
     else:
         raise NotImplementedError
+    dataset = data.ConcatDataset([train_dataset, test_dataset])
+    class_num = args.class_num
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=500,
