@@ -91,6 +91,8 @@ def train(params):
         )
     elif args.dataset == 'TUANDROMD':
         train_dataset, test_dataset = load_dataset(args.dataset)
+    elif args.dataset == 'BlogFeedback':
+        train_dataset, test_dataset = load_dataset(args.dataset)
     else:
         raise NotImplementedError
     dataset = data.ConcatDataset([train_dataset, test_dataset])
@@ -176,7 +178,7 @@ if __name__ == "__main__":
     search_space = {'learning_rate': [1e-3],
                     'eps': [1e-7],
                     'optimizer': ['AdamW'],
-                    'batch_size': [16],
+                    'batch_size': [128],
                     'projection_size': [256],
                     'n_layers': [3],
                     '0_layer_size': [512],

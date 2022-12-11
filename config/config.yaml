@@ -4,14 +4,14 @@ workers: 0
 dataset_dir: "./datasets"
 
 #dataset options
-input_size: 241
+input_size: 280
 class_num: 2
 
 # train options
 batch_size: 512
 start_epoch: 0
 epochs: 2
-dataset: "TUANDROMD" # MNIST, TUANDROMD
+dataset: "BlogFeedback" # MNIST, TUANDROMD, BlogFeedback
 masking_ratio: 0.2
 
 # model options
