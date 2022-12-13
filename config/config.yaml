@@ -2,16 +2,17 @@
 seed: 42
 workers: 0
 dataset_dir: "./datasets"
+baselines: True
 
 #dataset options
-input_size: 280
-class_num: 2
+input_size: 784
+class_num: 10
 
 # train options
 batch_size: 512
 start_epoch: 0
 epochs: 2
-dataset: "BlogFeedback" # MNIST, TUANDROMD, BlogFeedback
+dataset: "MNIST" # MNIST, TUANDROMD, BlogFeedback
 masking_ratio: 0.2
 
 # model options

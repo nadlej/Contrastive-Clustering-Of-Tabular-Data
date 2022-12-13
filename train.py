@@ -11,6 +11,9 @@ from torch.utils import data
 from matplotlib import pyplot as plt
 from cluster import cluster
 from utils.load_dataset import load_dataset
+from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
+from evaluation import evaluation
 
 def print_samples(x_i, x_j):
     for i in x_i:
@@ -124,6 +127,24 @@ def train(params):
     criterion_instance = contrastive_loss.InstanceLoss(params['batch_size'], args.instance_temperature, loss_device).to(
         loss_device)
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
+
+    if args.baselines:
+        k = args.class_num
+        kmeans = KMeans(n_clusters=10) 
+        train_dataset_bs = train_dataset.data.flatten(start_dim=1)
+        test_dataset_bs = test_dataset.data.flatten(start_dim=1)
+        kmeans.fit(train_dataset_bs)
+        y_pred = kmeans.predict(test_dataset_bs.data)
+        nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
+        print(acc)
+
+        gm = GaussianMixture(n_components=10, n_init=1)
+        gm.fit(train_dataset_bs)
+        y_pred = gm.predict(test_dataset_bs.data)
+        nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
+        print(acc)
+        
+        exit()
 
     # train
     for epoch in range(args.start_epoch, args.epochs):
