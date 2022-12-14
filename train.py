@@ -29,11 +29,9 @@ def print_samples(x_i, x_j):
 
 def generate_noisy_xbar(x, masking_type, masking_ratio):
     no, dim = x.shape
-
-    # Initialize corruption array
     x = np.array(x)
     x_bar_noisy = np.zeros([no, dim])
-    # # Randomly (and column-wise)x shuffle data
+
     if masking_type == 'swap_noise':
         process_swap_noise(x, x_bar_noisy)
     elif masking_type == 'gaussian':
@@ -41,7 +39,6 @@ def generate_noisy_xbar(x, masking_type, masking_ratio):
     elif masking_type == 'mixed':
         x_bar_noisy = process_mixed_noise(x, x_bar_noisy, masking_ratio)
 
-    # # Replace selected x_bar features with the noisy ones
     x_bar = get_masked_data(x, x_bar_noisy, masking_ratio)
     x_bar = torch.Tensor(x_bar)
     return x_bar
@@ -59,7 +56,6 @@ def process_gaussian_noise(x, x_bar_noisy):
 def process_mixed_noise(x, x_bar_noisy, masking_ratio):
     x_bar_part = np.copy(x_bar_noisy)
     x_bar_part = get_masked_data(x, x_bar_part, masking_ratio)
-    
     process_swap_noise(x_bar_part, x_bar_part)
     x_bar_noisy = process_gaussian_noise(x_bar_part, x_bar_noisy)
     return x_bar_noisy
@@ -129,22 +125,20 @@ def train(params):
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
 
     if args.baselines:
-        k = args.class_num
-        kmeans = KMeans(n_clusters=10) 
+        kmeans = KMeans(n_clusters=class_num) 
         train_dataset_bs = train_dataset.data.flatten(start_dim=1)
         test_dataset_bs = test_dataset.data.flatten(start_dim=1)
+
         kmeans.fit(train_dataset_bs)
         y_pred = kmeans.predict(test_dataset_bs.data)
         nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
-        print(acc)
+        print('k-means accuracy: ' + acc)
 
-        gm = GaussianMixture(n_components=10, n_init=1)
+        gm = GaussianMixture(n_components=class_num, n_init=10)
         gm.fit(train_dataset_bs)
         y_pred = gm.predict(test_dataset_bs.data)
         nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
-        print(acc)
-        
-        exit()
+        print('gmm accuracy: ' + acc)
 
     # train
     for epoch in range(args.start_epoch, args.epochs):
