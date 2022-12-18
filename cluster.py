@@ -53,6 +53,8 @@ def cluster(params):
         train_dataset, test_dataset = load_dataset(args.dataset)
     elif args.dataset == 'BlogFeedback':
         train_dataset, test_dataset = load_dataset(args.dataset)
+    elif args.dataset == 'BreastCancer':
+        train_dataset, test_dataset = load_dataset(args.dataset)
     else:
         raise NotImplementedError
     dataset = data.ConcatDataset([train_dataset, test_dataset])

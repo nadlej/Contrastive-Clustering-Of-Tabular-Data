@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from torch.utils import data
 from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import MinMaxScaler
 from os.path import join
 
@@ -66,4 +67,16 @@ def load_dataset(dataset_name):
 
         train_dataset = data.TensorDataset(torch.tensor(np.array(train_df)).type(torch.FloatTensor), torch.tensor(np.array(train_labels).astype(int)))
         test_dataset = data.TensorDataset(torch.tensor(np.array(test_df)).type(torch.FloatTensor), torch.tensor(np.array(test_labels).astype(int)))
+        return train_dataset, test_dataset
+
+    elif dataset_name == "BreastCancer":
+        X, y = load_breast_cancer(return_X_y=True)
+        scaler = MinMaxScaler()
+        X = scaler.fit_transform(X)
+
+        X_train, X_test, Y_train, Y_test = train_test_split(X, y, random_state=42)
+
+        train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(Y_train))
+        test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
+       
         return train_dataset, test_dataset

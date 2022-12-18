@@ -92,6 +92,8 @@ def train(params):
         train_dataset, test_dataset = load_dataset(args.dataset)
     elif args.dataset == 'BlogFeedback':
         train_dataset, test_dataset = load_dataset(args.dataset)
+    elif args.dataset == 'BreastCancer':
+        train_dataset, test_dataset = load_dataset(args.dataset)
     else:
         raise NotImplementedError
     dataset = data.ConcatDataset([train_dataset, test_dataset])
@@ -197,7 +199,7 @@ if __name__ == "__main__":
                     'projection_size': [256],
                     'n_layers': [3],
                     '0_layer_size': [512],
-                    '1_layer_size': [258],
+                    '1_layer_size': [256],
                     '2_layer_size': [128],
                     '3_layer_size': [128],
                     'masking_ratio': [0.2],
@@ -211,3 +213,6 @@ if __name__ == "__main__":
     for key, value in best_trial.params.items():
         print("{}: {}".format(key, value))
         f.write("{}: {}\n".format(key, value))
+    
+    print('Best accuracy: {}'.format(study.best_value))
+    f.write('Best accuracy: {}'.format(study.best_value))

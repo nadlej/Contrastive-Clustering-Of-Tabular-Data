@@ -5,18 +5,18 @@ dataset_dir: "./datasets"
 baselines: False
 
 #dataset options
-input_size: 784
-class_num: 10
+input_size: 784 # 784, 241, 280, 30
+class_num: 10 # 10, 2, 2, 2
 
 # train options
 batch_size: 512
 start_epoch: 0
 epochs: 2
-dataset: "MNIST" # MNIST, TUANDROMD, BlogFeedback
+dataset: "MNIST" # MNIST, TUANDROMD, BlogFeedback, BreastCancer
 masking_ratio: 0.2
 
 # model options
-backbone: "backbone" # backbone18 / backbone34 / backbone50
+backbone: "backbone" 
 feature_dim: 256
 model_path: "save/MNIST"
 reload: False
