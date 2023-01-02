@@ -134,13 +134,15 @@ def train(params):
         kmeans.fit(train_dataset_bs)
         y_pred = kmeans.predict(test_dataset_bs.data)
         nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
-        print('k-means accuracy: ' + acc)
+        print('k-means accuracy on raw: ' + str(acc))
+        print('k-means nmi on raw: ' + str(nmi))
 
         gm = GaussianMixture(n_components=class_num, n_init=10)
         gm.fit(train_dataset_bs)
         y_pred = gm.predict(test_dataset_bs.data)
         nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
-        print('gmm accuracy: ' + acc)
+        print('gmm accuracy: ' + str(acc))
+        print('gmm nmi on raw: ' + str(nmi))
 
     # train
     for epoch in range(args.start_epoch, args.epochs):

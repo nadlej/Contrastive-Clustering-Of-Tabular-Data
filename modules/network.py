@@ -46,3 +46,7 @@ class Network(nn.Module):
         c = self.cluster_projector(h)
         c = torch.argmax(c, dim=1)
         return c
+
+    def forward_backbone(self, x):
+        h = self.backbone(x)
+        return h

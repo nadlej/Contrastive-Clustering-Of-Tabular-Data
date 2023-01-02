@@ -2,7 +2,8 @@
 seed: 42
 workers: 0
 dataset_dir: "./datasets"
-baselines: False
+baselines: True
+latent_cluster: True
 
 #dataset options
 input_size: 784 # 784, 241, 280, 30

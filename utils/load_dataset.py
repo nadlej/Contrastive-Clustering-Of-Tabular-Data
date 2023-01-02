@@ -60,11 +60,7 @@ def load_dataset(dataset_name):
 
         test_labels[test_labels.astype(float) > 0.0] = 1.0
         test_labels[test_labels.astype(float) == 0.0] = 0.0
-
-        print(type(train_df))
-        print(type(train_labels))
         
-
         train_dataset = data.TensorDataset(torch.tensor(np.array(train_df)).type(torch.FloatTensor), torch.tensor(np.array(train_labels).astype(int)))
         test_dataset = data.TensorDataset(torch.tensor(np.array(test_df)).type(torch.FloatTensor), torch.tensor(np.array(test_labels).astype(int)))
         return train_dataset, test_dataset
