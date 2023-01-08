@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from torch.utils import data
 from sklearn.model_selection import train_test_split
+from sklearn import preprocessing
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import MinMaxScaler
 from os.path import join
@@ -94,5 +95,34 @@ def load_dataset(dataset_name):
         test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
 
         return train_dataset, test_dataset
+
+    elif dataset_name == 'letter':
+        LETTER_DATA = 'https://archive.ics.uci.edu/ml/machine-learning-databases/letter-recognition/letter-recognition.data'
+        with requests.Session() as s:
+            download = s.get(LETTER_DATA)
+
+            decoded_content = download.content.decode('utf-8')
+
+            cr = csv.reader(decoded_content.splitlines(), delimiter=',')
+            my_list = list(cr)
+            df = pd.DataFrame(my_list)
+            labels = df.pop(0).values
+            scaler = MinMaxScaler()
+            dataset = scaler.fit_transform(df)
+
+            X_train = dataset[:15000]
+            Y_train = labels[:15000]
+            X_test = dataset[15000:]
+            Y_test = labels[15000:]
+
+            le = preprocessing.LabelEncoder()
+            le.fit(Y_train)
+            Y_train = le.transform(Y_train)
+            Y_test = le.transform(Y_test)
+
+            train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(Y_train).astype(int)))
+            test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(Y_test).astype(int)))
+
+            return train_dataset, test_dataset
         
         

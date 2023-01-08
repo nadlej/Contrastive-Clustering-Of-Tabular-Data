@@ -96,6 +96,8 @@ def train(params):
         train_dataset, test_dataset = load_dataset(args.dataset)
     elif args.dataset == 'reuters':
         train_dataset, test_dataset = load_dataset(args.dataset)
+    elif args.dataset == 'letter':
+        train_dataset, test_dataset = load_dataset(args.dataset)   
     else:
         raise NotImplementedError
     dataset = data.ConcatDataset([train_dataset, test_dataset])

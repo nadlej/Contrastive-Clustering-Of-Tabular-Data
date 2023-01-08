@@ -6,14 +6,14 @@ baselines: False
 latent_cluster: False
 
 #dataset options
-input_size: 784 # 784, 241, 280, 30, 2000
-class_num: 10 # 10, 2, 2, 2, 4
+input_size: 784 # 784, 241, 280, 30, 2000, 16
+class_num: 10 # 10, 2, 2, 2, 4, 26
 
 # train options
 batch_size: 512
 start_epoch: 0
 epochs: 2
-dataset: "MNIST" # MNIST, TUANDROMD, BlogFeedback, BreastCancer, reuters
+dataset: "MNIST" # MNIST, TUANDROMD, BlogFeedback, BreastCancer, reuters, letter
 masking_ratio: 0.2
 
 # model options
