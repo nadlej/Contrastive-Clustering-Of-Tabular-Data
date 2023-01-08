@@ -56,7 +56,7 @@ def contrastive_cluster(model, train_dataset, test_dataset, args):
         num_workers=args.workers
     )
 
-    X, Y = inference(data_loader, model, device, args) 
+    X, Y = inference(data_loader, model, device, args.latent_cluster) 
     nmi, ari, f, acc = evaluation.evaluate(Y, X)
 
     return nmi, ari, f, acc
@@ -109,6 +109,8 @@ def cluster(params):
     elif args.dataset == 'BlogFeedback':
         train_dataset, test_dataset = load_dataset(args.dataset)
     elif args.dataset == 'BreastCancer':
+        train_dataset, test_dataset = load_dataset(args.dataset)
+    elif args.dataset == 'reuters':
         train_dataset, test_dataset = load_dataset(args.dataset)
     else:
         raise NotImplementedError

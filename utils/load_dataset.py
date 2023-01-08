@@ -76,3 +76,23 @@ def load_dataset(dataset_name):
         test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
        
         return train_dataset, test_dataset
+
+    elif dataset_name == 'reuters':
+        train_dataset = np.load('datasets/reuters/reutersidf10k_train.npy', allow_pickle=True)
+        test_dataset = np.load('datasets/reuters/reutersidf10k_test.npy', allow_pickle=True)
+
+        X_train = train_dataset.item()['data']
+        Y_train = train_dataset.item()['label']
+        X_test = test_dataset.item()['data']
+        Y_test = test_dataset.item()['label']
+
+        scaler = MinMaxScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_test = scaler.fit_transform(X_test)
+
+        train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(Y_train))
+        test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
+
+        return train_dataset, test_dataset
+        
+        
