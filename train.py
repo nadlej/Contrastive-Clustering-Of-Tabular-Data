@@ -1,11 +1,10 @@
 import os
 import numpy as np
 import torch
-import torchvision
 import argparse
 import torch.optim
 import optuna
-from modules import transform, network, contrastive_loss
+from modules import network, contrastive_loss
 from utils import yaml_config_hook, save_model
 from torch.utils import data
 from matplotlib import pyplot as plt
@@ -14,6 +13,7 @@ from utils.load_dataset import load_dataset
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from evaluation import evaluation
+from utils.generate_noise import generate_noisy_xbar
 
 def print_samples(x_i, x_j):
     for i in x_i:
@@ -27,43 +27,24 @@ def print_samples(x_i, x_j):
         plt.show()
         break
 
-def generate_noisy_xbar(x, masking_type, masking_ratio):
-    no, dim = x.shape
-    x = np.array(x)
-    x_bar_noisy = np.zeros([no, dim])
+def print_baselines_results(train_dataset, test_dataset, class_num):
 
-    if masking_type == 'swap_noise':
-        process_swap_noise(x, x_bar_noisy)
-    elif masking_type == 'gaussian':
-        x_bar_noisy = process_gaussian_noise(x, x_bar_noisy)
-    elif masking_type == 'mixed':
-        x_bar_noisy = process_mixed_noise(x, x_bar_noisy, masking_ratio)
+    kmeans = KMeans(n_clusters=class_num) 
+    train_dataset_bs = train_dataset.data.flatten(start_dim=1)
+    test_dataset_bs = test_dataset.data.flatten(start_dim=1)
 
-    x_bar = get_masked_data(x, x_bar_noisy, masking_ratio)
-    x_bar = torch.Tensor(x_bar)
-    return x_bar
+    kmeans.fit(train_dataset_bs)
+    y_pred = kmeans.predict(test_dataset_bs.data)
+    nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
+    print('k-means accuracy on raw: ' + str(acc))
+    print('k-means nmi on raw: ' + str(nmi))
 
-def process_swap_noise(x, x_bar_noisy):
-    no, dim = x.shape
-    for i in range(dim):
-        idx = np.random.permutation(no)
-        x_bar_noisy[:, i] = x[idx, i]
-
-def process_gaussian_noise(x, x_bar_noisy):
-    x_bar_noisy = x + np.random.normal(0, 0.1, x.shape)
-    return x_bar_noisy
-
-def process_mixed_noise(x, x_bar_noisy, masking_ratio):
-    x_bar_part = np.copy(x_bar_noisy)
-    x_bar_part = get_masked_data(x, x_bar_part, masking_ratio)
-    process_swap_noise(x_bar_part, x_bar_part)
-    x_bar_noisy = process_gaussian_noise(x_bar_part, x_bar_noisy)
-    return x_bar_noisy
-
-def get_masked_data(x_ori, x_per, masking_ratio):
-    mask = np.random.binomial(1, masking_ratio, x_ori.shape)
-    x_bar = x_ori * (1 - mask) + x_per * mask
-    return x_bar
+    gm = GaussianMixture(n_components=class_num, n_init=10)
+    gm.fit(train_dataset_bs)
+    y_pred = gm.predict(test_dataset_bs.data)
+    nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
+    print('gmm accuracy: ' + str(acc))
+    print('gmm nmi on raw: ' + str(nmi))
 
 def train(params):
     parser = argparse.ArgumentParser()
@@ -75,31 +56,8 @@ def train(params):
         os.makedirs(args.model_path)
 
     # prepare data
-    if args.dataset == "MNIST":
-        train_dataset = torchvision.datasets.MNIST(
-            root=args.dataset_dir,
-            download=True,
-            train=True,
-            transform=transform.Transforms(),
-        )
-        test_dataset = torchvision.datasets.MNIST(
-            root=args.dataset_dir,
-            download=True,
-            train=False,
-            transform=transform.Transforms(),
-        )
-    elif args.dataset == 'TUANDROMD':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'BlogFeedback':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'BreastCancer':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'reuters':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'letter':
-        train_dataset, test_dataset = load_dataset(args.dataset)   
-    else:
-        raise NotImplementedError
+    train_dataset, test_dataset = load_dataset(args.dataset)
+
     dataset = data.ConcatDataset([train_dataset, test_dataset])
     class_num = args.class_num
     data_loader = torch.utils.data.DataLoader(
@@ -131,22 +89,7 @@ def train(params):
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
 
     if args.baselines:
-        kmeans = KMeans(n_clusters=class_num) 
-        train_dataset_bs = train_dataset.data.flatten(start_dim=1)
-        test_dataset_bs = test_dataset.data.flatten(start_dim=1)
-
-        kmeans.fit(train_dataset_bs)
-        y_pred = kmeans.predict(test_dataset_bs.data)
-        nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
-        print('k-means accuracy on raw: ' + str(acc))
-        print('k-means nmi on raw: ' + str(nmi))
-
-        gm = GaussianMixture(n_components=class_num, n_init=10)
-        gm.fit(train_dataset_bs)
-        y_pred = gm.predict(test_dataset_bs.data)
-        nmi, ari, f, acc = evaluation.evaluate(np.array(test_dataset.targets), np.array(y_pred))
-        print('gmm accuracy: ' + str(acc))
-        print('gmm nmi on raw: ' + str(nmi))
+        print_baselines_results(train_dataset, test_dataset, class_num)
 
     # train
     for epoch in range(args.start_epoch, args.epochs):

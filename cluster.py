@@ -1,10 +1,9 @@
 import os
 import argparse
 import torch
-import torchvision
 import numpy as np
 from utils import yaml_config_hook
-from modules import network, transform
+from modules import network
 from evaluation import evaluation
 from torch.utils import data
 from utils.load_dataset import load_dataset
@@ -35,13 +34,6 @@ def latent_cluster(model, train_dataset, test_dataset, args):
     kmeans.fit(X_train)
     y_pred = kmeans.predict(X_test)
     nmi, ari, f, acc_kmeans = evaluation.evaluate(np.array(y_test), np.array(y_pred))
-    print('k-means accuracy: ' + str(acc_kmeans))
-
-    gm = GaussianMixture(n_components=args.class_num, n_init=10)
-    gm.fit(X_train)
-    y_pred = gm.predict(X_test)
-    nmi, ari, f, acc_gmm = evaluation.evaluate(np.array(y_test), np.array(y_pred))
-    print('gmm accuracy: ' + acc_gmm)
 
     return nmi, ari, f, acc_kmeans
 
@@ -91,32 +83,7 @@ def cluster(params):
     args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    if args.dataset == "MNIST":
-        train_dataset = torchvision.datasets.MNIST(
-            root=args.dataset_dir,
-            train=True,
-            download=True,
-            transform=transform.Transforms().test_transform,
-        )
-        test_dataset = torchvision.datasets.MNIST(
-            root=args.dataset_dir,
-            train=False,
-            download=True,
-            transform=transform.Transforms().test_transform,
-        )
-    elif args.dataset == 'TUANDROMD':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'BlogFeedback':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'BreastCancer':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'reuters':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    elif args.dataset == 'letter':
-        train_dataset, test_dataset = load_dataset(args.dataset)
-    else:
-        raise NotImplementedError
-
+    train_dataset, test_dataset = load_dataset(args.dataset)
     class_num = args.class_num
     model = network.Network(args.input_size, params, class_num)
     model_fp = os.path.join(args.model_path, "checkpoint_{}.tar".format(args.epochs))

@@ -4,15 +4,31 @@ import requests
 import pandas as pd 
 import numpy as np
 import torch
+import torchvision
+from modules import transform
 from torch.utils import data
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import MinMaxScaler
-from os.path import join
 
 def load_dataset(dataset_name):
-    if dataset_name == 'TUANDROMD':
+    if dataset_name == "MNIST":
+        train_dataset = torchvision.datasets.MNIST(
+            root="./datasets",
+            download=True,
+            train=True,
+            transform=transform.Transforms(),
+        )
+        test_dataset = torchvision.datasets.MNIST(
+            root="./datasets",
+            download=True,
+            train=False,
+            transform=transform.Transforms(),
+        )
+
+        return train_dataset, test_dataset
+    elif  dataset_name == 'TUANDROMD':
         CSV_URL = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00622/TUANDROMD.csv'
         with requests.Session() as s:
             download = s.get(CSV_URL)
@@ -124,5 +140,7 @@ def load_dataset(dataset_name):
             test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(Y_test).astype(int)))
 
             return train_dataset, test_dataset
-        
+
+    else:
+        raise NotImplementedError
         
