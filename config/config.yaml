@@ -13,7 +13,7 @@ class_num: 10 # 10, 2, 2, 2, 4, 26
 batch_size: 512
 start_epoch: 0
 epochs: 2
-dataset: "esssa" # MNIST, TUANDROMD, BlogFeedback, BreastCancer, reuters, letter
+dataset: "MNIST" # MNIST, TUANDROMD, BlogFeedback, BreastCancer, reuters, letter
 masking_ratio: 0.2
 
 # model options

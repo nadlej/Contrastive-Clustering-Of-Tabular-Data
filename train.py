@@ -57,7 +57,6 @@ def train(params):
 
     # prepare data
     train_dataset, test_dataset = load_dataset(args.dataset)
-
     dataset = data.ConcatDataset([train_dataset, test_dataset])
     class_num = args.class_num
     data_loader = torch.utils.data.DataLoader(
@@ -84,9 +83,9 @@ def train(params):
         optimizer.load_state_dict(checkpoint['optimizer'])
         args.start_epoch = checkpoint['epoch'] + 1
     loss_device = torch.device("cpu")
-    criterion_instance = contrastive_loss.InstanceLoss(params['batch_size'], args.instance_temperature, loss_device).to(
+    criterion_instance = contrastive_loss.InstanceLoss(params['batch_size'], args.instance_temperature, loss_device, params['projection_size']).to(
         loss_device)
-    criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
+    criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device, params['batch_size']).to(loss_device)
 
     if args.baselines:
         print_baselines_results(train_dataset, test_dataset, class_num)
