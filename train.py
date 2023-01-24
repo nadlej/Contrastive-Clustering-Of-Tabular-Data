@@ -30,6 +30,7 @@ def print_samples(x_i, x_j):
 def print_baselines_results(train_dataset, test_dataset, class_num):
 
     kmeans = KMeans(n_clusters=class_num) 
+    print(train_dataset)
     train_dataset_bs = train_dataset.data.flatten(start_dim=1)
     test_dataset_bs = test_dataset.data.flatten(start_dim=1)
 
@@ -88,6 +89,8 @@ def train(params):
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device, params['batch_size']).to(loss_device)
 
     if args.baselines:
+        print('essa')
+        print(train_dataset.data)
         print_baselines_results(train_dataset, test_dataset, class_num)
 
     # train
