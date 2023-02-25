@@ -1,0 +1,2 @@
+Start training on device: cuda:3
+{'batch_size': 128, 'masking_ratio': 0.2, 'noise': 'mixed', 'bt_lambda': 0.005, 'projection_size': 256, 'epochs': 100, 'instance_loss': 'simclr', 'cluster_loss': 'simclr'}

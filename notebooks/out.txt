@@ -1,0 +1,1 @@
+Start training on device: cuda:2

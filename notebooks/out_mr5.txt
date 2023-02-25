@@ -1,0 +1,6 @@
+Start training on device: cuda:2
+Start training on device: cuda:2
+Start training on device: cuda:2
+Start training on device: cuda:2
+Start training on device: cuda:2
+0.641120077838828 ~ 0.04122604397725659
