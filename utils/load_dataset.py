@@ -10,7 +10,9 @@ from torch.utils import data
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.datasets import load_breast_cancer
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+import datasets
+
 
 def load_dataset(dataset_name):
     if dataset_name == "MNIST":
@@ -51,14 +53,14 @@ def load_dataset(dataset_name):
     elif dataset_name == 'BlogFeedback':
         train_data_np = []
         test_data_np = []
-        for file in os.listdir('./datasets/BlogFeedback'):
+        for file in os.listdir('../datasets/BlogFeedback'):
             if "test" in file: 
-                with open('./datasets/BlogFeedback/' + file, newline='') as csvfile:
+                with open('../datasets/BlogFeedback/' + file, newline='') as csvfile:
                     cr = csv.reader(csvfile, delimiter=',')
                     my_list_test = list(cr)
                     test_data_np.extend(my_list_test)
             if "train" in file: 
-                with open('./datasets/BlogFeedback/' + file, newline='') as csvfile:
+                with open('../datasets/BlogFeedback/' + file, newline='') as csvfile:
                     cr = csv.reader(csvfile, delimiter=',')
                     my_list_train = list(cr)
                     train_data_np.extend(my_list_train)
@@ -140,7 +142,64 @@ def load_dataset(dataset_name):
             test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(Y_test).astype(int)))
 
             return train_dataset, test_dataset
+    elif dataset_name == 'ColorectalCarcinoma':
+        dataset = datasets.load_dataset("wwydmanski/colorectal-carcinoma-microbiome-fengq", "presence-absence")
+        train_dataset, test_dataset = dataset['train'], dataset['test']
 
+        scaler = StandardScaler()
+        X_train = np.array(train_dataset['values'])
+        y_train = np.array(train_dataset['target'])
+        X_train = scaler.fit_transform(X_train)
+
+        X_test = np.array(test_dataset['values'])
+        y_test = np.array(test_dataset['target'])
+        X_test = scaler.transform(X_test)
+
+        train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(y_train).astype(int)))
+        test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(y_test).astype(int)))
+
+        return train_dataset, test_dataset
+    elif dataset_name == 'ColorectalCarcinomaCLR':
+        dataset = datasets.load_dataset("wwydmanski/colorectal-carcinoma-microbiome-fengq", "CLR")
+        train_dataset, test_dataset = dataset['train'], dataset['test']
+        
+        scaler = StandardScaler()
+        X_train = np.array(train_dataset['values'])
+        y_train = np.array(train_dataset['target'])
+        X_train = scaler.fit_transform(X_train)
+
+        X_test = np.array(test_dataset['values'])
+        y_test = np.array(test_dataset['target'])
+        X_test = scaler.transform(X_test)
+
+        train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(y_train).astype(int)))
+        test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(y_test).astype(int)))
+
+        return train_dataset, test_dataset
+    elif dataset_name == "Bioresponse":
+        dataset = datasets.load_dataset("inria-soda/tabular-benchmark", data_files="clf_num/Bioresponse.csv")
+        df = pd.DataFrame(dataset['train'])
+        y = df.pop('target').values
+        X = df.values
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+
+        train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(y_train))
+        test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(y_test))
+
+        return train_dataset, test_dataset
+    elif dataset_name == "EyeMovements":
+        dataset = datasets.load_dataset("inria-soda/tabular-benchmark", data_files="clf_num/eye_movements.csv")
+        df = pd.DataFrame(dataset['train'])
+        y = df.pop('label').values
+        X = df.values
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+
+        train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(y_train))
+        test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(y_test))
+
+        return train_dataset, test_dataset
     else:
         raise NotImplementedError
         

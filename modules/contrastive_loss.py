@@ -24,12 +24,12 @@ class InstanceLoss(nn.Module):
         return mask
 
     def forward(self, z_i, z_j):
-        N = 2 * self.batch_size
+        N = 2 * z_i.size(0)
         z = torch.cat((z_i, z_j), dim=0)
 
         sim = torch.matmul(z, z.T) / self.temperature
-        sim_i_j = torch.diag(sim, self.batch_size)
-        sim_j_i = torch.diag(sim, -self.batch_size)
+        sim_i_j = torch.diag(sim, z_i.size(0))
+        sim_j_i = torch.diag(sim, -z_i.size(0))
 
         positive_xs = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
         negative_xs = sim[self.mask].reshape(N, -1)

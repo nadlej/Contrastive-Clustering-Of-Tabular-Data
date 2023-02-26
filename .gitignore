@@ -1,3 +1,6 @@
 datasets
+notebooks/results/
+notebooks/*out.ipynb
 __pycache__/
 save/MNIST/checkpoint*
+.vscode

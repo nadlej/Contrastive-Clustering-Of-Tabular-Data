@@ -6,14 +6,14 @@ import numpy as np
 
 
 class Network(nn.Module):
-    def __init__(self, input_size, params, class_num):
+    def __init__(self, input_size, params, class_num, fraction=0.8, test_nodes=50):
         super(Network, self).__init__()
         self.cluster_num = class_num
         self.hypernet = Hypernetwork(
             input_size,
-            target_architecture=[(int(input_size*0.8), input_size), (input_size, class_num)],
+            target_architecture=[(int(input_size*fraction), input_size), (input_size, class_num)],
             device="cuda:2",
-            test_nodes=20).train()
+            test_nodes=test_nodes).train()
         
         backbone = []
 
