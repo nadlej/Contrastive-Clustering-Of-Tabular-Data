@@ -1,3 +1,0 @@
-Start training on device: cuda:2
-{'batch_size': 128, 'masking_ratio': 0.2, 'noise': 'zero', 'bt_lambda': 0.005, 'projection_size': 256, 'epochs': 100, 'instance_loss': 'barlow_twins', 'cluster_loss': 'barlow_twins'}
-0.679 ~ 0.039
