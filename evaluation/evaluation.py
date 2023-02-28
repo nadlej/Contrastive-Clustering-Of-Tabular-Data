@@ -3,11 +3,14 @@ from sklearn import metrics
 from munkres import Munkres
 
 
-def evaluate(label, pred):
+def evaluate(label, pred, n_clusters=None):
+    if n_clusters is None:
+        n_clusters = len(np.unique(label))
+        
     nmi = metrics.normalized_mutual_info_score(label, pred)
     ari = metrics.adjusted_rand_score(label, pred)
     f = metrics.fowlkes_mallows_score(label, pred)
-    pred_adjusted = get_y_preds(label, pred, len(set(label)))
+    pred_adjusted = get_y_preds(label, pred, n_clusters)
     acc = metrics.accuracy_score(pred_adjusted, label)
     return nmi, ari, f, acc
 
@@ -18,6 +21,8 @@ def calculate_cost_matrix(C, n_clusters):
     for j in range(n_clusters):
         s = np.sum(C[:, j])  # number of examples in cluster i
         for i in range(n_clusters):
+            # this code has a bug: if C doesn't contain at least one sample 
+            # from all clusters it will throw an error
             t = C[i, j]
             cost_matrix[j, i] = s - t
     return cost_matrix
