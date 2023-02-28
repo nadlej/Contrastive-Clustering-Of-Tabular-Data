@@ -1,0 +1,2 @@
+reutersidf10k_test.npy filter=lfs diff=lfs merge=lfs -text
+reutersidf10k_train.npy filter=lfs diff=lfs merge=lfs -text
