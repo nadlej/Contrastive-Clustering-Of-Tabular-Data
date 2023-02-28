@@ -21,7 +21,8 @@ def calculate_cost_matrix(C, n_clusters):
     for j in range(n_clusters):
         s = np.sum(C[:, j])  # number of examples in cluster i
         for i in range(n_clusters):
-            # this code has a bug: if C
+            # this code has a bug: if C doesn't contain at least one sample 
+            # from all clusters it will throw an error
             t = C[i, j]
             cost_matrix[j, i] = s - t
     return cost_matrix
