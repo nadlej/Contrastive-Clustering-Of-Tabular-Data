@@ -14,6 +14,13 @@ from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from evaluation import evaluation
 from utils.generate_noise import generate_noisy_xbar
+from comet_ml import Experiment
+
+experiment = Experiment(
+    api_key="api_key",
+    project_name="name",
+    workspace="nadlej",
+)
 
 def print_samples(x_i, x_j):
     for i in x_i:
