@@ -8,7 +8,6 @@ from evaluation import evaluation
 from torch.utils import data
 from utils.load_dataset import load_dataset
 from sklearn.cluster import KMeans
-from sklearn.mixture import GaussianMixture
 
 def latent_cluster(model, train_dataset, test_dataset, args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

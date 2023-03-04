@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 def generate_noisy_xbar(x, masking_type, masking_ratio):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     no, dim = x.shape
     x = np.array(x)
     x_bar_noisy = np.zeros([no, dim])
@@ -14,7 +15,7 @@ def generate_noisy_xbar(x, masking_type, masking_ratio):
         x_bar_noisy = process_mixed_noise(x, x_bar_noisy, masking_ratio)
 
     x_bar = get_masked_data(x, x_bar_noisy, masking_ratio)
-    x_bar = torch.Tensor(x_bar)
+    x_bar = torch.Tensor(x_bar).to(device)
     return x_bar
 
 def process_swap_noise(x, x_bar_noisy):

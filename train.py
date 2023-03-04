@@ -22,6 +22,8 @@ experiment = Experiment(
     workspace="nadlej",
 )
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
 def print_samples(x_i, x_j):
     for i in x_i:
         pixels_org = i.reshape((28,28))
@@ -73,11 +75,12 @@ def train(params):
         shuffle=True,
         drop_last=True,
         num_workers=args.workers,
+        pin_memory=True
     )
 
     # initialize model
     model = network.Network(args.input_size, params, class_num)
-    model = model.to('cpu') 
+    model = model.to(device) 
     # optimizer / loss
     optimizer = getattr(torch.optim, params["optimizer"])(model.parameters(), 
                                                         lr=params['learning_rate'], 
@@ -90,7 +93,7 @@ def train(params):
         model.load_state_dict(checkpoint['net'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         args.start_epoch = checkpoint['epoch'] + 1
-    loss_device = torch.device("cpu")
+    loss_device = torch.device(device)
     criterion_instance = contrastive_loss.InstanceLoss(params['batch_size'], args.instance_temperature, loss_device).to(
         loss_device)
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
@@ -107,8 +110,8 @@ def train(params):
             x_j = x.clone()
             x_i = generate_noisy_xbar(x_i, params['noise'], params['masking_ratio'])
             x_j = generate_noisy_xbar(x_j, params['noise'], params['masking_ratio'])
-            x_i = x_i.to('cpu')
-            x_j = x_j.to('cpu') 
+            x_i = x_i.to(device)
+            x_j = x_j.to(device) 
             z_i, z_j, c_i, c_j = model(x_i, x_j)
             loss_instance = criterion_instance(z_i, z_j)
             loss_cluster = criterion_cluster(c_i, c_j)
@@ -116,8 +119,6 @@ def train(params):
             loss.backward()
             optimizer.step()
             loss_epoch += loss.item()
-        if epoch % 10 == 0:
-            save_model(args, model, optimizer, epoch)
         print(f"Epoch [{epoch}/{args.epochs}]\t Loss: {loss_epoch / len(data_loader)}")
     save_model(args, model, optimizer, args.epochs)
 
