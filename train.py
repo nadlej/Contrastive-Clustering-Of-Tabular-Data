@@ -5,6 +5,7 @@ import torch
 import argparse
 import torch.optim
 import optuna
+import torch.multiprocessing as mp
 from modules import network, contrastive_loss
 from utils import yaml_config_hook, save_model
 from torch.utils import data
@@ -74,7 +75,7 @@ def train(params):
         batch_size=params['batch_size'],
         shuffle=True,
         drop_last=True,
-        num_workers=args.workers,
+        num_workers=mp.cpu_count(),
         pin_memory=True
     )
 
