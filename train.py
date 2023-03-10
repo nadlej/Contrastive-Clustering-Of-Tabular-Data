@@ -111,10 +111,8 @@ def train(params):
             with torch.cuda.amp.autocast():
                 x_i = x.clone()
                 x_j = x.clone()
-                x_i = generate_noisy_xbar(x_i, params['noise'], params['masking_ratio'])
-                x_j = generate_noisy_xbar(x_j, params['noise'], params['masking_ratio'])
-                x_i = x_i.to(device)
-                x_j = x_j.to(device) 
+                x_i = generate_noisy_xbar(x_i.float(), params['noise'], params['masking_ratio'])
+                x_j = generate_noisy_xbar(x_j.float(), params['noise'], params['masking_ratio'])
                 z_i, z_j, c_i, c_j = model(x_i, x_j)
                 loss_instance = criterion_instance(z_i, z_j)
                 loss_cluster = criterion_cluster(c_i, c_j)
