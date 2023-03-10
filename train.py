@@ -1,3 +1,4 @@
+from comet_ml import Experiment
 import os
 import numpy as np
 import torch
@@ -14,7 +15,6 @@ from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from evaluation import evaluation
 from utils.generate_noise import generate_noisy_xbar
-from comet_ml import Experiment
 
 experiment = Experiment(
     api_key="api_key",
@@ -120,6 +120,9 @@ def train(params):
             optimizer.step()
             loss_epoch += loss.item()
         print(f"Epoch [{epoch}/{args.epochs}]\t Loss: {loss_epoch / len(data_loader)}")
+        metrics = {'instance loss': loss_instance.cpu().detach().numpy() / len(data_loader)}
+        experiment.log_metrics(metrics, step=epoch)
+
     save_model(args, model, optimizer, args.epochs)
 
     #test
