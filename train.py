@@ -102,23 +102,26 @@ def train(params):
     if args.baselines:
         print_baselines_results(train_dataset, test_dataset, class_num)
 
+    scaler = torch.cuda.amp.GradScaler()
     # train
     for epoch in range(args.start_epoch, args.epochs):
         loss_epoch = 0
         for step, (x, _) in enumerate(data_loader):
             optimizer.zero_grad()
-            x_i = x.clone()
-            x_j = x.clone()
-            x_i = generate_noisy_xbar(x_i, params['noise'], params['masking_ratio'])
-            x_j = generate_noisy_xbar(x_j, params['noise'], params['masking_ratio'])
-            x_i = x_i.to(device)
-            x_j = x_j.to(device) 
-            z_i, z_j, c_i, c_j = model(x_i, x_j)
-            loss_instance = criterion_instance(z_i, z_j)
-            loss_cluster = criterion_cluster(c_i, c_j)
-            loss = loss_instance + loss_cluster
-            loss.backward()
-            optimizer.step()
+            with torch.cuda.amp.autocast():
+                x_i = x.clone()
+                x_j = x.clone()
+                x_i = generate_noisy_xbar(x_i, params['noise'], params['masking_ratio'])
+                x_j = generate_noisy_xbar(x_j, params['noise'], params['masking_ratio'])
+                x_i = x_i.to(device)
+                x_j = x_j.to(device) 
+                z_i, z_j, c_i, c_j = model(x_i, x_j)
+                loss_instance = criterion_instance(z_i, z_j)
+                loss_cluster = criterion_cluster(c_i, c_j)
+                loss = loss_instance + loss_cluster
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             loss_epoch += loss.item()
         print(f"Epoch [{epoch}/{args.epochs}]\t Loss: {loss_epoch / len(data_loader)}")
         metrics = {'instance loss': loss_instance.cpu().detach().numpy() / len(data_loader)}
