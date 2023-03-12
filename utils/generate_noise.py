@@ -15,7 +15,7 @@ def generate_noisy_xbar(x, masking_type, masking_ratio):
         x_bar_noisy = process_mixed_noise(x, x_bar_noisy, masking_ratio)
 
     x_bar = get_masked_data(x, x_bar_noisy, masking_ratio)
-    x_bar = torch.Tensor(x_bar, device=device)
+    x_bar = torch.as_tensor(x_bar, device=device, dtype=torch.float)
     return x_bar
 
 def process_swap_noise(x, x_bar_noisy):
