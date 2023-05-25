@@ -87,9 +87,10 @@ def load_dataset(dataset_name):
     elif dataset_name == "BreastCancer":
         X, y = load_breast_cancer(return_X_y=True)
         scaler = MinMaxScaler()
-        X = scaler.fit_transform(X)
-
         X_train, X_test, Y_train, Y_test = train_test_split(X, y, random_state=42)
+        scaler.fit(X_train)
+        X_train = scaler.transform(X_train)
+        X_test = scaler.transform(X_test)
 
         train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(Y_train))
         test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
@@ -106,8 +107,9 @@ def load_dataset(dataset_name):
         Y_test = test_dataset.item()['label']
 
         scaler = MinMaxScaler()
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.fit_transform(X_test)
+        scaler.fit(X_train)
+        X_train = scaler.transform(X_train)
+        X_test = scaler.transform(X_test)
 
         train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(Y_train))
         test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
@@ -125,18 +127,23 @@ def load_dataset(dataset_name):
             my_list = list(cr)
             df = pd.DataFrame(my_list)
             labels = df.pop(0).values
-            scaler = MinMaxScaler()
-            dataset = scaler.fit_transform(df)
+        
 
             X_train = dataset[:15000]
             Y_train = labels[:15000]
             X_test = dataset[15000:]
             Y_test = labels[15000:]
+            
+            scaler = MinMaxScaler()
+            scaler.fit(X_train)
+            X_train = scaler.transform(X_train)
+            X_test = scaler.transform(X_test)
 
             le = preprocessing.LabelEncoder()
             le.fit(Y_train)
             Y_train = le.transform(Y_train)
             Y_test = le.transform(Y_test)
+            
 
             train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(Y_train).astype(int)))
             test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(Y_test).astype(int)))

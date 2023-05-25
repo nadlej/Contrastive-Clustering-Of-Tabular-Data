@@ -75,7 +75,7 @@ def train(params):
         batch_size=params['batch_size'],
         shuffle=True,
         drop_last=True,
-        num_workers=mp.cpu_count(),
+        num_workers=10,
         pin_memory=True
     )
 
@@ -122,7 +122,7 @@ def train(params):
             scaler.update()
             loss_epoch += loss.item()
         print(f"Epoch [{epoch}/{args.epochs}]\t Loss: {loss_epoch / len(data_loader)}")
-        metrics = {'instance loss': loss_instance.cpu().detach().numpy() / len(data_loader)}
+        metrics = {'instance loss': loss_instance.cpu().detach().numpy() / len(data_loader), 'cluster loss': loss_cluster.cpu().detach().numpy() / len(data_loader) }
         experiment.log_metrics(metrics, step=epoch)
 
     save_model(args, model, optimizer, args.epochs)
@@ -138,13 +138,13 @@ def objective(trial):
               'eps': trial.suggest_float('eps', 1e-8, 1e-4),
               'optimizer': trial.suggest_categorical('optimizer', ['Adam', 'AdamW']),
               'batch_size': trial.suggest_int('batch_size', 1, 513),
-              'projection_size': trial.suggest_int('projection_size', 127, 513),
+              'projection_size': trial.suggest_int('projection_size', 127, 1024),
               'n_layers': trial.suggest_int('n_layers', 0, 5),
               '0_layer_size': trial.suggest_int('0_layer_size', 127, 513),
               '1_layer_size': trial.suggest_int('1_layer_size', 127, 513),
               '2_layer_size': trial.suggest_int('2_layer_size', 127, 513),
               '3_layer_size': trial.suggest_int('3_layer_size', 127, 513),
-              'masking_ratio': trial.suggest_float('masking_ratio', 0.2, 0.3),
+              'masking_ratio': trial.suggest_float('masking_ratio', 0.0, 1.0),
               'noise': trial.suggest_categorical('noise', ['swap_noise', 'gaussian', 'mixed', 'zero'])
               }
     
@@ -154,27 +154,28 @@ def objective(trial):
     return accuracy
 
 if __name__ == "__main__":
-    search_space = {'learning_rate': [1e-3],
-                    'eps': [1e-7],
-                    'optimizer': ['AdamW'],
-                    'batch_size': [128],
-                    'projection_size': [256],
-                    'n_layers': [3],
-                    '0_layer_size': [512],
-                    '1_layer_size': [256],
-                    '2_layer_size': [128],
-                    '3_layer_size': [128],
-                    'masking_ratio': [0.2],
-                    'noise': ['swap_noise']
-                    }
-    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.GridSampler(search_space))
-    study.optimize(objective)
-    best_trial = study.best_trial
+    for i in range(10):
+        search_space = {'learning_rate': [1e-3],
+                        'eps': [1e-7],
+                        'optimizer': ['AdamW'],
+                        'batch_size': [128],
+                        'projection_size': [256],
+                        'n_layers': [3],
+                        '0_layer_size': [512],
+                        '1_layer_size': [256],
+                        '2_layer_size': [128],
+                        '3_layer_size': [128],
+                        'masking_ratio': [1.0],
+                        'noise': ['swap_noise']
+                        }
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.GridSampler(search_space))
+        study.optimize(objective)
+        best_trial = study.best_trial
 
-    f = open("save/MNIST/best_parameters.txt", "a")
-    for key, value in best_trial.params.items():
-        print("{}: {}".format(key, value))
-        f.write("{}: {}\n".format(key, value))
-    
-    print('Best accuracy: {}'.format(study.best_value))
-    f.write('Best accuracy: {}'.format(study.best_value))
+        f = open("save/MNIST/best_parameters.txt", "a")
+        for key, value in best_trial.params.items():
+            print("{}: {}".format(key, value))
+            f.write("{}: {}\n".format(key, value))
+        
+        print('Best accuracy: {}'.format(study.best_value))
+        f.write('Best accuracy: {}'.format(study.best_value))

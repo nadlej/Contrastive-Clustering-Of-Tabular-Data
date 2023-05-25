@@ -3,16 +3,36 @@ import torch
 from torch.nn.functional import normalize
 
 
+class Lambda(nn.Module):
+    def __init__(self, func):
+        super().__init__()
+        self.func = func
+
+    def forward(self, x):
+        return self.func(x)
+
+def scale_during_training(x, scale_factor, is_training):
+    if is_training:
+        return x * (1 / (1 - scale_factor))
+    else:
+        return x
+
 class Network(nn.Module):
     def __init__(self, input_size, params, class_num):
         super(Network, self).__init__()
         self.cluster_num = class_num
         backbone = []
-
+        
         for i in range(params['n_layers']):
             out_features = params["{}_layer_size".format(i)]
             backbone.append(nn.Linear(input_size, out_features))
-            backbone.append(nn.LeakyReLU())
+            
+            if i == 0 and params['noise'] == 'zero':  # Check if it's the first layer
+                backbone.append(nn.LeakyReLU())
+                backbone.append(Lambda(lambda x: scale_during_training(x, params['masking_ratio'], self.training)))
+            else:
+                backbone.append(nn.LeakyReLU())
+            
             input_size = out_features
 
         self.backbone = nn.Sequential(*backbone)
