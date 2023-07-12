@@ -9,36 +9,27 @@ from torch.utils import data
 from utils.load_dataset import load_dataset
 from sklearn.cluster import KMeans
 
-def latent_cluster(model, train_dataset, test_dataset, args):
+def latent_cluster(model, dataset, args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=500,
-        shuffle=False,
-        drop_last=False,
-        num_workers=args.workers,
-    )
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset,
+    data_loader = torch.utils.data.DataLoader(
+        dataset,
         batch_size=500,
         shuffle=False,
         drop_last=False,
         num_workers=args.workers,
     )
 
-    X_train, _ = inference(train_loader, model, device, args.latent_cluster)
-    X_test, y_test = inference(test_loader, model, device, args.latent_cluster)
+    X, y = inference(data_loader, model, device, args.latent_cluster)
 
     kmeans = KMeans(n_clusters=args.class_num) 
-    kmeans.fit(X_train)
-    y_pred = kmeans.predict(X_test)
-    nmi, ari, f, acc_kmeans = evaluation.evaluate(np.array(y_test), np.array(y_pred))
+    kmeans.fit(X)
+    y_pred = kmeans.predict(X)
+    nmi, ari, f, acc_kmeans = evaluation.evaluate(np.array(y), np.array(y_pred))
 
     return nmi, ari, f, acc_kmeans
 
-def contrastive_cluster(model, train_dataset, test_dataset, args):
+def contrastive_cluster(model, dataset, args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dataset = data.ConcatDataset([train_dataset, test_dataset])
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=500,
@@ -82,7 +73,7 @@ def cluster(params):
     args = parser.parse_args()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_dataset, test_dataset = load_dataset(args.dataset)
+    dataset = load_dataset(args.dataset)
     class_num = args.class_num
     model = network.Network(args.input_size, params, class_num)
     model_fp = os.path.join(args.model_path, "checkpoint_{}.tar".format(args.epochs))
@@ -91,9 +82,9 @@ def cluster(params):
 
     print("### Creating features from model ###")
     if args.latent_cluster:
-         nmi, ari, f, acc = latent_cluster(model, train_dataset, test_dataset, args)
+         nmi, ari, f, acc = latent_cluster(model, dataset, args)
     else:
-        nmi, ari, f, acc = contrastive_cluster(model, train_dataset, test_dataset, args)
+        nmi, ari, f, acc = contrastive_cluster(model, dataset, args)
         
     print('NMI = {:.4f} ARI = {:.4f} F = {:.4f} ACC = {:.4f}'.format(nmi, ari, f, acc))
     return acc

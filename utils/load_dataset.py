@@ -11,7 +11,9 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from torch.utils import data
 import datasets
+from scipy.spatial.distance import cdist
 
 
 def load_dataset(dataset_name):
@@ -28,8 +30,10 @@ def load_dataset(dataset_name):
             train=False,
             transform=transform.Transforms(),
         )
-
-        return train_dataset, test_dataset
+        
+        dataset = data.ConcatDataset([train_dataset, test_dataset])
+        return dataset
+    
     elif  dataset_name == 'TUANDROMD':
         CSV_URL = 'https://archive.ics.uci.edu/ml/machine-learning-databases/00622/TUANDROMD.csv'
         with requests.Session() as s:
@@ -48,7 +52,8 @@ def load_dataset(dataset_name):
             X_train, X_test, Y_train, Y_test = train_test_split(df.astype(float), labels.astype(int), random_state=42)
             train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(Y_train)))
             test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(Y_test)).type(torch.FloatTensor))
-            return train_dataset, test_dataset
+            dataset = data.ConcatDataset([train_dataset, test_dataset])
+            return dataset  
     
     elif dataset_name == 'BlogFeedback':
         train_data_np = []
@@ -87,34 +92,26 @@ def load_dataset(dataset_name):
     elif dataset_name == "BreastCancer":
         X, y = load_breast_cancer(return_X_y=True)
         scaler = MinMaxScaler()
-        X_train, X_test, Y_train, Y_test = train_test_split(X, y, random_state=42)
-        scaler.fit(X_train)
-        X_train = scaler.transform(X_train)
-        X_test = scaler.transform(X_test)
 
-        train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(Y_train))
-        test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
+        scaler.fit(X)
+        X = scaler.transform(X)
+
+        dataset = data.TensorDataset(torch.tensor(X).type(torch.FloatTensor), torch.tensor(y))
        
-        return train_dataset, test_dataset
+        return dataset
 
     elif dataset_name == 'reuters':
         train_dataset = np.load('datasets/reuters/reutersidf10k_train.npy', allow_pickle=True)
-        test_dataset = np.load('datasets/reuters/reutersidf10k_test.npy', allow_pickle=True)
 
-        X_train = train_dataset.item()['data']
-        Y_train = train_dataset.item()['label']
-        X_test = test_dataset.item()['data']
-        Y_test = test_dataset.item()['label']
-
+        X = train_dataset.item()['data']
+        y = train_dataset.item()['label']
+        
+        print(len(y))
         scaler = MinMaxScaler()
-        scaler.fit(X_train)
-        X_train = scaler.transform(X_train)
-        X_test = scaler.transform(X_test)
+        X = scaler.fit_transform(X)
 
-        train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(Y_train))
-        test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(Y_test))
-
-        return train_dataset, test_dataset
+        dataset = data.TensorDataset(torch.tensor(X).type(torch.FloatTensor), torch.tensor(y))
+        return dataset
 
     elif dataset_name == 'letter':
         LETTER_DATA = 'https://archive.ics.uci.edu/ml/machine-learning-databases/letter-recognition/letter-recognition.data'
@@ -128,27 +125,15 @@ def load_dataset(dataset_name):
             df = pd.DataFrame(my_list)
             labels = df.pop(0).values
         
-
-            X_train = dataset[:15000]
-            Y_train = labels[:15000]
-            X_test = dataset[15000:]
-            Y_test = labels[15000:]
-            
             scaler = MinMaxScaler()
-            scaler.fit(X_train)
-            X_train = scaler.transform(X_train)
-            X_test = scaler.transform(X_test)
+            X = scaler.fit_transform(df)
 
             le = preprocessing.LabelEncoder()
-            le.fit(Y_train)
-            Y_train = le.transform(Y_train)
-            Y_test = le.transform(Y_test)
+            y = le.fit_transform(labels)
             
-
-            train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(Y_train).astype(int)))
-            test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(Y_test).astype(int)))
-
-            return train_dataset, test_dataset
+            dataset = data.TensorDataset(torch.tensor(np.array(X)).type(torch.FloatTensor), torch.tensor(np.array(y).astype(int)))
+            return dataset
+        
     elif dataset_name == 'ColorectalCarcinoma':
         dataset = datasets.load_dataset("wwydmanski/colorectal-carcinoma-microbiome-fengq", "presence-absence")
         train_dataset, test_dataset = dataset['train'], dataset['test']
@@ -165,7 +150,9 @@ def load_dataset(dataset_name):
         train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(y_train).astype(int)))
         test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(y_test).astype(int)))
 
-        return train_dataset, test_dataset
+        dataset = data.ConcatDataset([train_dataset, test_dataset])
+        return dataset
+    
     elif dataset_name == 'ColorectalCarcinomaCLR':
         dataset = datasets.load_dataset("wwydmanski/colorectal-carcinoma-microbiome-fengq", "CLR")
         train_dataset, test_dataset = dataset['train'], dataset['test']
@@ -182,7 +169,9 @@ def load_dataset(dataset_name):
         train_dataset = data.TensorDataset(torch.tensor(np.array(X_train)).type(torch.FloatTensor), torch.tensor(np.array(y_train).astype(int)))
         test_dataset = data.TensorDataset(torch.tensor(np.array(X_test)).type(torch.FloatTensor), torch.tensor(np.array(y_test).astype(int)))
 
-        return train_dataset, test_dataset
+        dataset = data.ConcatDataset([train_dataset, test_dataset])
+        return dataset
+    
     elif dataset_name == "Bioresponse":
         dataset = datasets.load_dataset("inria-soda/tabular-benchmark", data_files="clf_num/Bioresponse.csv")
         df = pd.DataFrame(dataset['train'])
@@ -194,7 +183,8 @@ def load_dataset(dataset_name):
         train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(y_train))
         test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(y_test))
 
-        return train_dataset, test_dataset
+        dataset = data.ConcatDataset([train_dataset, test_dataset])
+        return dataset
     elif dataset_name == "EyeMovements":
         dataset = datasets.load_dataset("inria-soda/tabular-benchmark", data_files="clf_num/eye_movements.csv")
         df = pd.DataFrame(dataset['train'])
@@ -206,6 +196,7 @@ def load_dataset(dataset_name):
         train_dataset = data.TensorDataset(torch.tensor(X_train).type(torch.FloatTensor), torch.tensor(y_train))
         test_dataset = data.TensorDataset(torch.tensor(X_test).type(torch.FloatTensor), torch.tensor(y_test))
 
-        return train_dataset, test_dataset
+        dataset = data.ConcatDataset([train_dataset, test_dataset])
+        return dataset
     else:
         raise NotImplementedError

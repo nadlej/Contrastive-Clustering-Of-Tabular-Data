@@ -66,9 +66,8 @@ def train(params):
         os.makedirs(args.model_path)
 
     # prepare data
-    train_dataset, test_dataset = load_dataset(args.dataset)
+    dataset = load_dataset(args.dataset)
 
-    dataset = data.ConcatDataset([train_dataset, test_dataset])
     class_num = args.class_num
     data_loader = torch.utils.data.DataLoader(
         dataset,
@@ -99,8 +98,8 @@ def train(params):
         loss_device)
     criterion_cluster = contrastive_loss.ClusterLoss(class_num, args.cluster_temperature, loss_device).to(loss_device)
 
-    if args.baselines:
-        print_baselines_results(train_dataset, test_dataset, class_num)
+    # if args.baselines:
+    #     print_baselines_results(dataset, class_num)
 
     scaler = torch.cuda.amp.GradScaler()
     # train
